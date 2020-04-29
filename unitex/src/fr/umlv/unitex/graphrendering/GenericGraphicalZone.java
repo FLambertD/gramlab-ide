@@ -26,10 +26,12 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Vector;
 
-import javax.swing.*;
+import javax.swing.JComponent;
+import javax.swing.JInternalFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JViewport;
 import javax.swing.event.UndoableEditListener;
 import javax.swing.undo.AbstractUndoableEdit;
 import javax.swing.undo.UndoableEdit;
@@ -38,14 +40,29 @@ import javax.swing.undo.UndoableEditSupport;
 import fr.umlv.unitex.MyCursors;
 import fr.umlv.unitex.config.ConfigManager;
 import fr.umlv.unitex.diff.GraphDecorator;
-import fr.umlv.unitex.exceptions.*;
+import fr.umlv.unitex.diff.GraphDecoratorConfig;
+import fr.umlv.unitex.exceptions.BackSlashAtEndOfLineException;
+import fr.umlv.unitex.exceptions.MissingGraphNameException;
+import fr.umlv.unitex.exceptions.NoClosingQuoteException;
+import fr.umlv.unitex.exceptions.NoClosingRoundBracketException;
+import fr.umlv.unitex.exceptions.NoClosingSupException;
 import fr.umlv.unitex.grf.GraphMetaData;
 import fr.umlv.unitex.grf.GraphPresentationInfo;
 import fr.umlv.unitex.io.GraphIO;
 import fr.umlv.unitex.listeners.GraphListener;
 import fr.umlv.unitex.listeners.GraphTextEvent;
 import fr.umlv.unitex.listeners.GraphTextListener;
-import fr.umlv.unitex.undo.*;
+import fr.umlv.unitex.tfst.tagging.TaggingModel;
+import fr.umlv.unitex.tfst.tagging.TaggingState;
+import fr.umlv.unitex.undo.AddBoxEdit;
+import fr.umlv.unitex.undo.BoxGroupTextEdit;
+import fr.umlv.unitex.undo.BoxTextEdit;
+import fr.umlv.unitex.undo.DeleteBoxGroupEdit;
+import fr.umlv.unitex.undo.RemoveBoxEdit;
+import fr.umlv.unitex.undo.SelectEdit;
+import fr.umlv.unitex.undo.TransitionEdit;
+import fr.umlv.unitex.undo.TransitionGroupEdit;
+import fr.umlv.unitex.undo.TranslationEdit;
 
 /**
  * This class describes a component on which a graph can be drawn.
@@ -175,7 +192,23 @@ public abstract class GenericGraphicalZone extends JComponent {
 			final UndoableEdit edit = new AddBoxEdit(g, graphBoxes, this);
 			postEdit(edit);
 		}
+		final Object[] options_on_exit = { "Yes", "No" };
+		if(containsToBeRemoved(graphBoxes)) {
+			int n = JOptionPane
+					.showOptionDialog(
+							null,
+							"Create box will unmark \"preferred\" boxes, do you want to continue ?",
+							"", JOptionPane.YES_NO_CANCEL_OPTION,
+							JOptionPane.QUESTION_MESSAGE, null,
+							options_on_exit, options_on_exit[0]);
+			
+			if (n == JOptionPane.CLOSED_OPTION || n != 0)
+				return;
+		}
+		
 		graphBoxes.add(g);
+		
+		
 	}
 
 	protected abstract GenericGraphBox createBox(int x, int y);
@@ -269,6 +302,7 @@ public abstract class GenericGraphicalZone extends JComponent {
 		}
 	}
 
+
 	protected void removeBox(GenericGraphBox box) {
 		graphBoxes.remove(box);
 		for (final GenericGraphBox b : graphBoxes) {
@@ -277,9 +311,11 @@ public abstract class GenericGraphicalZone extends JComponent {
 	}
 
 	public void removeBoxes(ArrayList<GenericGraphBox> boxes) {
+		final AbstractUndoableEdit edit = new DeleteBoxGroupEdit(boxes, graphBoxes, this);
 		for (final GenericGraphBox b : boxes) {
 			removeBox(b);
 		}
+	    postEdit(edit);
 		fireGraphChanged(true);
 		repaint();
 	}
@@ -334,6 +370,20 @@ public abstract class GenericGraphicalZone extends JComponent {
 		if (selectedBoxes.isEmpty())
 			return;
 		L = selectedBoxes.size();
+		final Object[] options_on_exit = { "Yes", "No" };
+		if(containsToBeRemoved(graphBoxes)) {
+			int n = JOptionPane
+					.showOptionDialog(
+							null,
+							"Removing box will unmark \"preferred\" boxes, do you want to continue ?",
+							"", JOptionPane.YES_NO_CANCEL_OPTION,
+							JOptionPane.QUESTION_MESSAGE, null,
+							options_on_exit, options_on_exit[0]);
+			
+			if (n == JOptionPane.CLOSED_OPTION || n != 0)
+				return;
+		}
+		
 		final UndoableEdit edit = new DeleteBoxGroupEdit(selectedBoxes,
 				graphBoxes, this);
 		postEdit(edit);
@@ -346,6 +396,14 @@ public abstract class GenericGraphicalZone extends JComponent {
 		}
 		unSelectAllBoxes();
 		repaint();
+	}
+
+	private boolean containsToBeRemoved(ArrayList<GenericGraphBox> graphBoxes2) {
+		for (GenericGraphBox genericGraphBox : graphBoxes2) {
+			if(genericGraphBox.state == TaggingState.NOT_PREFERRED)
+				return true;
+		}
+		return false;
 	}
 
 	/**
@@ -514,6 +572,10 @@ public abstract class GenericGraphicalZone extends JComponent {
 	boolean singleDragging = false;
 	GenericGraphBox singleDraggedBox;
 
+	/* These fields are here to have the 2 boxes of the last transition */
+	private GenericGraphBox lastTransitionBoxePrevious;
+	private GenericGraphBox lastTransitionBoxeNext;
+
 	/**
 	 * Adds transitions from all selected boxes to a specified graph box
 	 *
@@ -531,14 +593,31 @@ public abstract class GenericGraphicalZone extends JComponent {
 		final ArrayList<GenericGraphBox> editBoxes = new ArrayList<GenericGraphBox>();
 		for (i = 0; i < L; i++) {
 			g = selectedBoxes.get(i);
-			if (g.addTransitionTo(dest))
+			if (dest.type != GenericGraphBox.INITIAL && g.addTransitionTo(dest)) {
 				editBoxes.add(g);
+				lastTransitionBoxePrevious = g;
+				lastTransitionBoxeNext = dest;
+			}
 		}
 		if (save && !editBoxes.isEmpty()) {
 			final UndoableEdit edit = new TransitionGroupEdit(editBoxes, dest,
 					this);
 			postEdit(edit);
 		}
+	}
+	
+	/** @Aissa
+	 * 
+	 * Remove the last transition of the automaton
+	 * 
+	 */
+	public void removeLastTransition() {
+		final ArrayList<GenericGraphBox> editBoxes = new ArrayList<GenericGraphBox>();
+		lastTransitionBoxePrevious.addTransitionTo(lastTransitionBoxeNext);
+		editBoxes.add(lastTransitionBoxePrevious);
+		final UndoableEdit edit = new TransitionGroupEdit(editBoxes, lastTransitionBoxeNext,
+				this);
+		postEdit(edit);
 	}
 
 	/**
@@ -658,6 +737,28 @@ public abstract class GenericGraphicalZone extends JComponent {
 		L = graphBoxes.size();
 		for (i = 0; i < L; i++) {
 			g = graphBoxes.get(i);
+			g.draw(gr, params);
+		}
+	}
+	
+	/**
+	 * Draws all boxes of the graph
+	 *
+	 * @param gr
+	 *            the graphical context
+	 */
+	void drawAllBoxes(Graphics2D gr, DrawGraphParams params, TaggingModel model	) {
+		int i, L;
+		GenericGraphBox g;
+		if (graphBoxes.isEmpty())
+			return;
+		L = graphBoxes.size();
+		for (i = 0; i < L; i++) {
+			g = graphBoxes.get(i);
+			//gr.setColor(GraphDecoratorConfig.DEBUG_COLOR);
+		   // gr.setFont(this.getGraphPresentationInfo().getOutput().getFont());
+			//gr.drawString( model.getBoxState((TfstGraphBox)g).toString(), g.X1 + 5 , g.Y1 - 15 );
+			//gr.drawString(model.renumber[i]+" "+model.factorization[i], g.X1 + 5 , g.Y1 - 25);
 			g.draw(gr, params);
 		}
 	}

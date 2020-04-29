@@ -25,6 +25,7 @@ import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
+import java.text.Normalizer;
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -40,6 +41,13 @@ import fr.umlv.unitex.tfst.Bounds;
  */
 public class TfstGraphBox extends GenericGraphBox {
 	private Bounds bounds;
+	
+	@Override
+	public TfstGraphBox clone() {
+		TfstGraphBox tmp = new TfstGraphBox(this.X, this.Y, this.type, (TfstGraphicalZone) this.parentGraphicalZone);
+		tmp.bounds = new Bounds(this.bounds);
+		return tmp;
+	}
 
 	/**
 	 * Constructs a new box
@@ -56,6 +64,8 @@ public class TfstGraphBox extends GenericGraphBox {
 	public TfstGraphBox(int x, int y, int type, TfstGraphicalZone p) {
 		super(x, y, type, p);
 	}
+	
+	
 
 	/**
 	 * Takes a <code>String</code> representing the box content and tokenizes it
@@ -169,7 +179,10 @@ public class TfstGraphBox extends GenericGraphBox {
 	public void setContent(String s) {
 		if (type == FINAL)
 			return; // nothing to do if we consider the final state
-		content = s;
+		if(s.equals("<E>"))
+			content = s;
+		else // only if the language is Korean ? 
+			content = Normalizer.normalize(s, Normalizer.Form.NFKD);
 		String tmp = "";
 		n_lines = 0;
 		tmp = s;
@@ -177,7 +190,15 @@ public class TfstGraphBox extends GenericGraphBox {
 		lines.clear();
 		greyed.clear();
 		tokenizeText(s, false);
-		if (!tmp.equals("<E>")) {
+		if (!tmp.equals("<E>") && !tmp.equals(",")) {
+			// updating the letters bounds
+			if(tmp.contains("{")  )
+				updateBoundsLetters( tmp.split(",")[0].length()-1 );
+			else {
+				updateBoundsLetters( tmp.length() );
+			}
+			
+			
 			// dimensions of a full box
 			Width = maxLineWidth() + 10;
 			Height = n_lines * get_h_ligne() + 6;
@@ -189,6 +210,13 @@ public class TfstGraphBox extends GenericGraphBox {
 		Y1 = Y - Height / 2;
 		X_out = X + Width + 5;
 	}
+	
+	// @Yass
+		public void updateBoundsLetters( int length ) {
+			if( bounds != null && length>0 )
+				bounds.setEnd_in_chars( length-1 );
+		}
+
 
 	public void setContentWithBounds(String s) {
 		if (type == FINAL)
@@ -279,12 +307,29 @@ public class TfstGraphBox extends GenericGraphBox {
 					getBoxNumber(), c));
 		}
 		super.drawOther(g, params);
+		if (bounds != null) {
+			 /*g.setColor(GraphDecoratorConfig.DEBUG_COLOR);
+	      g.setFont(parentGraphicalZone.getGraphPresentationInfo().getOutput().getFont());
+	      String boundsString = bounds.getStart_in_tokens() + ". " + bounds.getStart_in_chars() + ". " + bounds.getStart_in_letters()
+	        + " - " + bounds.getEnd_in_tokens() + ". " + bounds.getEnd_in_chars() + ". "
+	        + bounds.getEnd_in_letters();
+	     g.drawString(boundsString, X1 + 5, Y1 + Height + 15 + g.getFontMetrics().getHeight());*/
+	    
+	    }
 		g.setComposite(c);
 		params.setBackgroundColor(old);
 	}
 
 	private boolean isUntaggedToken(String s) {
 		return !s.equals("<E>") && s.charAt(0) != '{';
+	}
+	
+	public String getContentText() {
+		if (content.startsWith("{")) {
+			int index = content.indexOf(",");
+		return content.substring(1, index);
+		}	
+		return content;
 	}
 
 }
