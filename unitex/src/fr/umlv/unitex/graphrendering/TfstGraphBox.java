@@ -325,4 +325,12 @@ public class TfstGraphBox extends GenericGraphBox {
 		}	
 		return content;
 	}
+	
+	public String getContentWithoutText() {
+		if (content.startsWith("{")) {
+			int index = content.indexOf(",")+1;
+		return content.substring(index, content.length()-2);
+		}	
+		return "";
+	}
 }

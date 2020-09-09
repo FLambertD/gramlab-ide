@@ -605,6 +605,23 @@ public abstract class GenericGraphicalZone extends JComponent {
 				this);
 		postEdit(edit);
 	}
+	
+	/**
+	 * 
+	 * @return the previous box of the last transition created
+	 */
+	public GenericGraphBox getLastTransitionBoxePrevious() {
+		return lastTransitionBoxePrevious;
+	}
+	
+	/**
+	 * 
+	 * @return the next box of the last transition created
+	 */
+	public GenericGraphBox getLastTransitionBoxeNext() {
+		return lastTransitionBoxeNext;
+	}
+	
 
 	/**
 	 * Adds transitions from a specified graph box to all selected boxes

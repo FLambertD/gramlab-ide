@@ -571,5 +571,9 @@ public class TfstGraphicalZone extends GenericGraphicalZone implements
 		Arrays.sort(tab);
 		return tab;
 	}
+	
+	public int getSentence() {
+		return this.sentence;
+	}
 
 }
