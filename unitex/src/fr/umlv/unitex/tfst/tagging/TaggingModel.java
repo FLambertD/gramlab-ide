@@ -192,7 +192,7 @@ public class TaggingModel {
 		lstTok.clear();
 		lstPath.clear();
 		if (oldSentenceTransitionCheck != zone.getSentence() && zone.getSentence()!=-1) {
-			System.out.println("changmenent de phrase");
+			/*sentence has changed*/
 			oldSentenceTransitionCheck = zone.getSentence();
 		}
 		
@@ -302,8 +302,7 @@ public class TaggingModel {
 	}
 	
 	/**  This function creates all the paths we can have between the first box
-	 *  "bfp" and the last box "bfs" and put them in allPaths. Then, it keeps only
-	 *  paths which contains at least a box which is tagged USELESS
+	 *  "bfp" and the last box "bfs" and put them in allPaths.
 	 * 
 	 * @param bfp 
 	 * 			The number of the first box in the path
@@ -312,10 +311,9 @@ public class TaggingModel {
 	 * 			The number of the last box in the path
 	 * 
 	 * @param allPaths
-	 * 			The list of all path which contains at least a box USELESS
+	 * 			The list of all paths
 	 */		
 	void computeAllPaths( int bfp, int bfs, ArrayList<ArrayList<Integer>> allPaths ){
-		System.out.println("calcul des chemins avec premiere "+bfp+" dernière box "+ bfs + " " + boxes[bfs].getContentText());
 		computePath(boxes[bfp], boxes[bfs], new ArrayList<Integer>(), allPaths);
 		for (ArrayList<Integer> arrayList : allPaths) {
 			for (int i = 0; i < arrayList.size(); i++) {
@@ -471,9 +469,6 @@ public class TaggingModel {
 		ArrayList<String> textPaths = new ArrayList<String>();
 		for(ArrayList<Integer> lst : paths) {
 			textPaths.add(findSequence(lst));
-		}
-		for (String string : textPaths) {
-			System.out.println(string);
 		}
 		return textPaths;
 	}
@@ -783,27 +778,21 @@ public class TaggingModel {
 		if (boxes.length == 0 || zone == null) {
 			return false;
 		}
-		System.out.println("isNewTransition");
 		TfstGraphBox testPrevious = (TfstGraphBox) zone.getLastTransitionBoxePrevious();
 		TfstGraphBox testNext = (TfstGraphBox) zone.getLastTransitionBoxeNext();
-		System.out.println("on a nos tests");
 		if (Objects.isNull(testPrevious) || Objects.isNull(testNext)) {
 			return false;
 		}
-		System.out.println("1");
 		if (Objects.isNull(previousBox) || !testPrevious.equals(previousBox) || !testNext.equals(nextBox)) {
-			System.out.println("2");
 			if(checkRemoveTransition(testPrevious,testNext)) {
 				previousBox = null;
 				nextBox = null;
 				return false;
 			}
-			System.out.println("NOUVELLE TRANSITION "+testPrevious.getBoxNumber()+": "+boxes[testPrevious.getBoxNumber()].getContentText()+" "+testNext.getBoxNumber());
 			previousBox = testPrevious;
 			nextBox = testNext;
 			return true;
 		}else {
-			System.out.println("3");
 			return false;
 		}
 		
