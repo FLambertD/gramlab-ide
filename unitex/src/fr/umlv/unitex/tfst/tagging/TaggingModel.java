@@ -768,7 +768,7 @@ public class TaggingModel {
 		}
 		for (int i = 0; i < boxes.length; i++) {
 			if (boxes[i].equals(previousBox)) {
-				setBoxStateInternal(i, TaggingState.MODIFIED);
+				setBoxStateInternal(i, TaggingState.TO_CHECK);
 				checkNewBranch(i);
 			}
 		}
