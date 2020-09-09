@@ -28,8 +28,8 @@ public enum TaggingState {
 	NOT_PREFERRED,
 	/* The box is not both accessible and co-accessible */
 	USELESS,
-	/* None of previous cases */
-	NEUTRAL,
 	/* The box is accessible and co-accessible but hasn't been validated yet*/
-	TO_CHECK
+	TO_CHECK,
+	/* None of previous cases */
+	NEUTRAL
 }
