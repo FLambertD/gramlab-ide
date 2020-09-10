@@ -425,6 +425,7 @@ public class TaggingModel {
 	}
 	
 	/**
+	 * @param boxNumber which corresponds to the modified box
 	 * applies verification of new pathes when a box content is modified
 	 */
 	private void verifyNewPathsContent(int boxNumber) {
