@@ -694,7 +694,7 @@ public class TaggingModel {
 				preferBox(boxes[i]);
 			}
 		}
-		markModifiedStates();
+		markModifiedBoxes();
 		markUselessStates();
 	}
 
@@ -748,6 +748,9 @@ public class TaggingModel {
 		}
 	}
 	
+	/**
+	* checks if there is an update of the text of a box and applies the path verification if true
+	*/
 	private boolean checkTextUpdate() {
 		if (boxes.length != oldBoxesContent.length) {
 			updateoldBoxesContent();
@@ -762,7 +765,10 @@ public class TaggingModel {
 		return false;
 	}
 	
-	private void markModifiedStates() {
+	/**
+	* set the state TO_CHECK to box of the new transition
+	*/
+	private void markModifiedBoxes() {
 		if (boxes.length == 0 || oldBoxesContent.length == 0 || !isNewTransition()) {
 			return;
 		}
@@ -774,6 +780,9 @@ public class TaggingModel {
 		}
 	}
 
+	/**
+	* checks if there is a new transition which needs a path verification
+	*/
 	private boolean isNewTransition() {
 		if (boxes.length == 0 || zone == null) {
 			return false;
@@ -799,7 +808,7 @@ public class TaggingModel {
 	}
 	
 	/**
-	 * 
+	 * checks if the last transition is a removal or if the sentence has changed
 	 * @param testPrevious
 	 * @param testNext
 	 */
@@ -1261,46 +1270,5 @@ public class TaggingModel {
 		}
 		taggingStates=selection;
 	}
-
-	/*public void updateBoundsDiffToken(ArrayList<GenericGraphBox> selectedBoxes, TfstGraphBox b) {
-		int t = selectedBoxes.get(0).getBoxNumber();
-		System.err.println("The value of " + t + " is bigger than the number of boxes");
-		Bounds temp;
-		if(t > boxes.length)
-			temp = new Bounds(b.getBounds().getGlobal_start_in_chars(), b.getBounds().getGlobal_end_in_chars());
-		else
-			temp = new Bounds(boxes[t].getBounds());
-		
-		int i = 2;
-		
-		int j = 0;
-		
-		if( b.getContent().equals("-") || b.getContent().equals("/") || b.getContent().equals("'") 
-				|| b.getContent().equals(".") || b.getContent().equals(","))
-			i = 1;
-		
-		if(b.getContent().contains(" "))
-			j = 2;
-		
-		temp.setStart_in_tokens(temp.getStart_in_tokens()+i);
-		
-		if(b.getBounds() != null) {
-			temp.setStart_in_letters(b.getBounds().getStart_in_letters());
-			temp.setStart_in_chars(b.getBounds().getStart_in_chars());
-			temp.setEnd_in_letters(b.getBounds().getEnd_in_letters());
-			temp.setEnd_in_chars(b.getBounds().getEnd_in_chars());
-		}
-		if(t == 0) {
-			temp.setStart_in_tokens(0);
-		}
-		
-		temp.setEnd_in_tokens(temp.getStart_in_tokens()+j);
-		
-		b.setBounds( temp );
-	}
-	
-	public void updateBoundsSameToken(ArrayList<GenericGraphBox> selectedBoxes, TfstGraphBox b) {
-		b.setBounds( new Bounds(boxes[selectedBoxes.get(0).getBoxNumber()].getBounds()) );
-	}*/
 	
 }
